@@ -1,0 +1,215 @@
+<h1 id="practical-machine-learning-course---project-work">Practical Machine Learning Course - Project Work</h1>
+<h2 id="background">Background</h2>
+<h3 id="using-devices-such-as-jawbone-up-nike-fuelband-and-fitbit-it-is-now-possible-to-collect-a-large-amount-of-data-about-personal-activity-relatively-inexpensively.-these-type-of-devices-are-part-of-the-quantified-self-movement-a-group-of-enthusiasts-who-take-measurements-about-themselves-regularly-to-improve-their-health-to-find-patterns-in-their-behavior-or-because-they-are-tech-geeks.-one-thing-that-people-regularly-do-is-quantify-how-much-of-a-particular-activity-they-do-but-they-rarely-quantify-how-well-they-do-it.-in-this-project-your-goal-will-be-to-use-data-from-accelerometers-on-the-belt-forearm-arm-and-dumbell-of-6-participants.-they-were-asked-to-perform-barbell-lifts-correctly-and-incorrectly-in-5-different-ways.-more-information-is-available-from-the-website-here-httpweb.archive.orgweb20161224072740httpgroupware.les.inf.puc-rio.brhar-see-the-section-on-the-weight-lifting-exercise-dataset.">Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data ### about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – ### a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns ### in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a ### particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to ### use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform ### barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: ### http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har (see the section on the Weight ### Lifting Exercise Dataset).</h3>
+<h2 id="data">Data</h2>
+<h3 id="the-training-data-for-this-project-are-available-here">The training data for this project are available here:</h3>
+<h3 id="httpsd396qusza40orc.cloudfront.netpredmachlearnpml-training.csv">https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv</h3>
+<h3 id="the-test-data-are-available-here">The test data are available here:</h3>
+<h3 id="httpsd396qusza40orc.cloudfront.netpredmachlearnpml-testing.csv">https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv</h3>
+<h2 id="project-intended-results">Project Intended Results</h2>
+<h3 id="the-goal-of-this-project-is-to-predict-the-manner-in-which-they-did-the-exercise.-this-is-the-classe-variable-in-the-training-set.-you-may-use-any-of-the-other-variables-to-predict-with.-you-should-create-a-report-describing-how-you-built-your-model-how-you-used-cross-validation-what-you-think-the-expected-out-of-sample-error-is-and-why-you-made-the-choices-you-did.-you-will-also-use-your-prediction-model-to-predict-20-different-test-cases.">The goal of this project is to predict the manner in which they did the exercise. This is the “classe” variable in ### the training set. You may use any of the other variables to predict with. You should create a report describing how you built your model, how you used cross validation, what you think the expected out of sample error is, and why you made the choices you did. You will also use your prediction model to predict 20 different test cases.</h3>
+<h2 id="load-libraries">Load Libraries</h2>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(caret)
+<span class="kw">library</span>(rpart)
+<span class="kw">library</span>(rpart.plot)
+<span class="kw">library</span>(RColorBrewer)
+<span class="kw">library</span>(rattle)
+<span class="kw">library</span>(randomForest)
+<span class="kw">library</span>(knitr)
+<span class="kw">set.seed</span>(<span class="dv">12345</span>)</code></pre></div>
+<h2 id="load-data">Load Data</h2>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">trainUrl &lt;-<span class="st"> &quot;https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv&quot;</span>
+testUrl &lt;-<span class="st"> &quot;https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv&quot;</span>
+
+training &lt;-<span class="st"> </span><span class="kw">read.csv</span>(<span class="kw">url</span>(trainUrl), <span class="dt">na.strings=</span><span class="kw">c</span>(<span class="st">&quot;NA&quot;</span>,<span class="st">&quot;#DIV/0!&quot;</span>,<span class="st">&quot;&quot;</span>))
+testing &lt;-<span class="st"> </span><span class="kw">read.csv</span>(<span class="kw">url</span>(testUrl), <span class="dt">na.strings=</span><span class="kw">c</span>(<span class="st">&quot;NA&quot;</span>,<span class="st">&quot;#DIV/0!&quot;</span>,<span class="st">&quot;&quot;</span>))</code></pre></div>
+<h2 id="partitioning-the-training-set-into-two">Partitioning the training set into two</h2>
+<h3 id="partitioning-training-data-set-into-two-data-sets-60-for-training-and-40-for-testing">Partitioning Training data set into two data sets; 60% for Training and 40% for Testing</h3>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">inTrain&lt;-<span class="kw">createDataPartition</span>(<span class="dt">y=</span>training$classe,<span class="dt">p=</span><span class="fl">0.6</span>,<span class="dt">list=</span><span class="ot">FALSE</span>)
+Training&lt;-training[inTrain,]
+Testing&lt;-training[-inTrain,]
+<span class="kw">dim</span>(Training)</code></pre></div>
+<pre><code>## [1] 11776   160</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">dim</span>(Testing)</code></pre></div>
+<pre><code>## [1] 7846  160</code></pre>
+<h2 id="cleaning-the-data">Cleaning the Data</h2>
+<h3 id="remove-nearzerovariance-variables">Remove NearZeroVariance variables</h3>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">nzv&lt;-<span class="kw">nearZeroVar</span>(Training,<span class="dt">saveMetrics=</span><span class="ot">TRUE</span>)
+Training&lt;-Training[,nzv$nzv==<span class="ot">FALSE</span>]
+nzv&lt;-<span class="kw">nearZeroVar</span>(Testing,<span class="dt">saveMetrics=</span><span class="ot">TRUE</span>)
+Testing&lt;-Testing[,nzv$nzv==<span class="ot">FALSE</span>]</code></pre></div>
+<h3 id="remove-the-first-column-of-the-training-data-set">Remove the first column of the Training data set</h3>
+<p>``{r casche=T} Training&lt;-Training[c(-1)] ``` ### Clean the variables with more than 60% NA</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">trainingV3&lt;-Training
+for(i in <span class="dv">1</span>:<span class="kw">length</span>(Training)){
+if(<span class="kw">sum</span>(<span class="kw">is.na</span>(Training[,i]))/<span class="kw">nrow</span>(Training)&gt;=.<span class="dv">7</span>){
+for(j in <span class="dv">1</span>:<span class="kw">length</span>(trainingV3)){
+if(<span class="kw">length</span>(<span class="kw">grep</span>(<span class="kw">names</span>(Training[i]),<span class="kw">names</span>(trainingV3)[j]))==<span class="dv">1</span>){
+trainingV3&lt;-trainingV3[,-j]
+}
+}
+}
+}</code></pre></div>
+<h3 id="set-back-to-the-original-variable-name">set back to the original variable name</h3>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">Training&lt;-trainingV3
+<span class="kw">rm</span>(trainingV3)</code></pre></div>
+<h3 id="transform-the-testing-and-testing-data-sets">Transform the Testing and Testing data sets</h3>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">clean1&lt;-<span class="kw">colnames</span>(Training)
+clean2&lt;-<span class="kw">colnames</span>(Training[,-<span class="dv">58</span>]) <span class="co">#remove the classe column</span>
+Testing&lt;-Testing[clean1] <span class="co">#allow only variables in Testing that are also in Training</span>
+testing&lt;-testing[clean2] <span class="co">#allow variables in testing that are also in Testing</span></code></pre></div>
+<pre><code>## Error in `[.data.frame`(testing, clean2): undefined columns selected</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">dim</span>(Testing)</code></pre></div>
+<pre><code>## [1] 7846   59</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">dim</span>(testing)</code></pre></div>
+<pre><code>## [1]  20 160</code></pre>
+<h3 id="coerce-the-data-into-the-same-type">Coerce the data into the same type</h3>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">for(i in <span class="dv">1</span>:<span class="kw">length</span>(testing)){
+for(j in <span class="dv">1</span>:<span class="kw">length</span>(Training)){
+if(<span class="kw">length</span>(<span class="kw">grep</span>(<span class="kw">names</span>(Training[i]),<span class="kw">names</span>(testing)[j]))==<span class="dv">1</span>){
+<span class="kw">class</span>(testing[j])&lt;-<span class="kw">class</span>(Training[i])
+}
+}
+}</code></pre></div>
+<pre><code>## Error in `[.data.frame`(Training, i): undefined columns selected</code></pre>
+<h3 id="to-get-the-same-class-between-testing-and-training">To get the same class between testing and Training</h3>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">testing&lt;-<span class="kw">rbind</span>(Training[<span class="dv">2</span>,-<span class="dv">58</span>],testing)</code></pre></div>
+<pre><code>## Error in rbind(deparse.level, ...): numbers of columns of arguments do not match</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">testing&lt;-testing[-<span class="dv">1</span>,]</code></pre></div>
+<h2 id="prediction-with-decision-trees">PREDICTION WITH DECISION TREES</h2>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">set.seed</span>(<span class="dv">12345</span>)
+modFitA1&lt;-<span class="kw">rpart</span>(classe~.,<span class="dt">data=</span>Training,<span class="dt">method=</span><span class="st">&quot;class&quot;</span>)
+<span class="kw">fancyRpartPlot</span>(modFitA1)</code></pre></div>
+<div class="figure">
+<img src="figure/unnamed-chunk-10-1.png" alt="plot of chunk unnamed-chunk-10" />
+<p class="caption">plot of chunk unnamed-chunk-10</p>
+</div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">predictionsA1&lt;-<span class="kw">predict</span>(modFitA1,Testing,<span class="dt">type=</span><span class="st">&quot;class&quot;</span>)
+cmtree&lt;-<span class="kw">confusionMatrix</span>(predictionsA1,Testing$classe)
+cmtree</code></pre></div>
+<pre><code>## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction    A    B    C    D    E
+##          A 2232    0    0    0    0
+##          B    0 1518    0    0    0
+##          C    0    0 1368    0    0
+##          D    0    0    0 1286    0
+##          E    0    0    0    0 1442
+## 
+## Overall Statistics
+##                                      
+##                Accuracy : 1          
+##                  95% CI : (0.9995, 1)
+##     No Information Rate : 0.2845     
+##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16  
+##                                      
+##                   Kappa : 1          
+##  Mcnemar&#39;s Test P-Value : NA         
+## 
+## Statistics by Class:
+## 
+##                      Class: A Class: B Class: C Class: D Class: E
+## Sensitivity            1.0000   1.0000   1.0000   1.0000   1.0000
+## Specificity            1.0000   1.0000   1.0000   1.0000   1.0000
+## Pos Pred Value         1.0000   1.0000   1.0000   1.0000   1.0000
+## Neg Pred Value         1.0000   1.0000   1.0000   1.0000   1.0000
+## Prevalence             0.2845   0.1935   0.1744   0.1639   0.1838
+## Detection Rate         0.2845   0.1935   0.1744   0.1639   0.1838
+## Detection Prevalence   0.2845   0.1935   0.1744   0.1639   0.1838
+## Balanced Accuracy      1.0000   1.0000   1.0000   1.0000   1.0000</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">plot</span>(cmtree$table,<span class="dt">col=</span>cmtree$byClass,<span class="dt">main=</span><span class="kw">paste</span>(<span class="st">&quot;Decision Tree Confusion Matrix:Accuracy=&quot;</span>,
+<span class="kw">round</span>(cmtree$overall[<span class="st">&quot;Accuracy&quot;</span>],<span class="dv">4</span>)))</code></pre></div>
+<p><img src="figure/unnamed-chunk-10-2.png" alt="plot of chunk unnamed-chunk-10" /> ## PREDICTION WITH RANDOM FORESTS</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">set.seed</span>(<span class="dv">123435</span>)
+modFitB1&lt;-<span class="kw">randomForest</span>(classe~.,<span class="dt">data=</span>Training)
+predictionB1&lt;-<span class="kw">predict</span>(modFitB1,Testing,<span class="dt">type=</span><span class="st">&quot;class&quot;</span>)
+cmrf&lt;-<span class="kw">confusionMatrix</span>(predictionB1,Testing$classe)
+cmrf</code></pre></div>
+<pre><code>## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction    A    B    C    D    E
+##          A 2232    0    0    0    0
+##          B    0 1518    0    0    0
+##          C    0    0 1368    0    0
+##          D    0    0    0 1286    0
+##          E    0    0    0    0 1442
+## 
+## Overall Statistics
+##                                      
+##                Accuracy : 1          
+##                  95% CI : (0.9995, 1)
+##     No Information Rate : 0.2845     
+##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16  
+##                                      
+##                   Kappa : 1          
+##  Mcnemar&#39;s Test P-Value : NA         
+## 
+## Statistics by Class:
+## 
+##                      Class: A Class: B Class: C Class: D Class: E
+## Sensitivity            1.0000   1.0000   1.0000   1.0000   1.0000
+## Specificity            1.0000   1.0000   1.0000   1.0000   1.0000
+## Pos Pred Value         1.0000   1.0000   1.0000   1.0000   1.0000
+## Neg Pred Value         1.0000   1.0000   1.0000   1.0000   1.0000
+## Prevalence             0.2845   0.1935   0.1744   0.1639   0.1838
+## Detection Rate         0.2845   0.1935   0.1744   0.1639   0.1838
+## Detection Prevalence   0.2845   0.1935   0.1744   0.1639   0.1838
+## Balanced Accuracy      1.0000   1.0000   1.0000   1.0000   1.0000</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">plot</span>(modFitB1)</code></pre></div>
+<div class="figure">
+<img src="figure/unnamed-chunk-11-1.png" alt="plot of chunk unnamed-chunk-11" />
+<p class="caption">plot of chunk unnamed-chunk-11</p>
+</div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">plot</span>(cmrf$table,<span class="dt">col=</span>cmtree$byClass,<span class="dt">main=</span><span class="kw">paste</span>(<span class="st">&quot;Random Forest Confusion Matrix Accuracy=&quot;</span>,
+<span class="kw">round</span>(cmrf$overall[<span class="st">&quot;Accuracy&quot;</span>],<span class="dv">4</span>)))</code></pre></div>
+<p><img src="figure/unnamed-chunk-11-2.png" alt="plot of chunk unnamed-chunk-11" /> ## PREDICTION WITH GENERALISED BOOSTED REGRESSION</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">set.seed</span>(<span class="dv">12345</span>)
+fitControl&lt;-<span class="kw">trainControl</span>(<span class="dt">method=</span><span class="st">&quot;repeatedcv&quot;</span>,<span class="dt">number=</span><span class="dv">5</span>,<span class="dt">repeats=</span><span class="dv">1</span>)
+gbmFit1&lt;-<span class="kw">train</span>(classe~.,<span class="dt">data=</span>Training,<span class="dt">method=</span><span class="st">&quot;gbm&quot;</span>,<span class="dt">trControl=</span>fitControl,<span class="dt">verbose=</span><span class="ot">FALSE</span>)
+gbmFitMod1&lt;-gbmFit1$finalModel
+gbmPredTest&lt;-<span class="kw">predict</span>(gbmFit1,<span class="dt">newdata=</span>myTesting)
+gbmAccuracyTest&lt;-<span class="kw">confusionMatrix</span>(gbmPredTest,Testing$classe)
+gbmAccuracyTest</code></pre></div>
+<pre><code>## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction    A    B    C    D    E
+##          A 2232    0    0    0    0
+##          B    0 1518    0    0    0
+##          C    0    0 1368    0    0
+##          D    0    0    0 1286    0
+##          E    0    0    0    0 1442
+## 
+## Overall Statistics
+##                                      
+##                Accuracy : 1          
+##                  95% CI : (0.9995, 1)
+##     No Information Rate : 0.2845     
+##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16  
+##                                      
+##                   Kappa : 1          
+##  Mcnemar&#39;s Test P-Value : NA         
+## 
+## Statistics by Class:
+## 
+##                      Class: A Class: B Class: C Class: D Class: E
+## Sensitivity            1.0000   1.0000   1.0000   1.0000   1.0000
+## Specificity            1.0000   1.0000   1.0000   1.0000   1.0000
+## Pos Pred Value         1.0000   1.0000   1.0000   1.0000   1.0000
+## Neg Pred Value         1.0000   1.0000   1.0000   1.0000   1.0000
+## Prevalence             0.2845   0.1935   0.1744   0.1639   0.1838
+## Detection Rate         0.2845   0.1935   0.1744   0.1639   0.1838
+## Detection Prevalence   0.2845   0.1935   0.1744   0.1639   0.1838
+## Balanced Accuracy      1.0000   1.0000   1.0000   1.0000   1.0000</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">plot</span>(gbmFit1,<span class="dt">ylim=</span><span class="kw">c</span>(<span class="fl">0.9</span>,<span class="dv">1</span>))</code></pre></div>
+<p><img src="figure/unnamed-chunk-12-1.png" alt="plot of chunk unnamed-chunk-12" /> ## PREDICTING RESULTS ON THE TEST DATA ###Random Forests gave an accuracy in the Testing data set of 99.9% which is ### more accurate than the Decision trees or GBM. The expected out of sample ### test error is 0.10%</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">predictB2&lt;-<span class="kw">predict</span>(modFitB1,testing,<span class="dt">type=</span><span class="st">&quot;class&quot;</span>)</code></pre></div>
+<pre><code>## Error in predict.randomForest(modFitB1, testing, type = &quot;class&quot;): Type of predictors in new data do not match that of the training data.</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">predictB2</code></pre></div>
+<pre><code>##  1  2 31  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 
+##  B  A  B  A  A  E  D  B  A  A  B  C  B  A  E  E  A  B  B  B 
+## Levels: A B C D E</code></pre>
+<h3 id="write-the-results-to-a-text-file-for-submission">Write the results to a text file for submission</h3>
+<p>pml_write_files=function(x){ n=length(x) for(i in 1:n){ filename=paste0(&quot;problem_id_&quot;,i,&quot;.txt&quot;) write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE) } } pml_write_files(predictB2)</p>

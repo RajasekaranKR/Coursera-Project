@@ -1,0 +1,163 @@
+---
+title: "Machine Learning Project Work"
+author: "Rajasekaran"
+date: "July 30, 2018"
+output: html_document
+---
+
+
+# Practical Machine Learning Course - Project Work
+
+##Background
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data  about personal activity relatively inexpensively. These type of devices are part of the quantified self movement –  a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a  particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to  use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform  barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here:  http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har (see the section on the Weight  Lifting Exercise Dataset).
+
+## Data
+
+### The training data for this project are available here:
+
+### https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+### The test data are available here:
+
+### https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+## Project Intended Results
+
+The goal of this project is to predict the manner in which they did the exercise. This is the “classe” variable in  the training set. You may use any of the other variables to predict with. You should create a report describing how you built your model, how you used cross validation, what you think the expected out of sample error is, and why you made the choices you did. You will also use your prediction model to predict 20 different test cases.
+
+  
+## Load Libraries
+```{r casche=T}
+library(caret)
+library(rpart)
+library(rpart.plot)
+library(RColorBrewer)
+library(rattle)
+library(randomForest)
+library(knitr)
+set.seed(12345)
+```
+## Load Data
+```{r casche=T}
+trainUrl <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+testUrl <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+
+training <- read.csv(url(trainUrl), na.strings=c("NA","#DIV/0!",""))
+testing <- read.csv(url(testUrl), na.strings=c("NA","#DIV/0!",""))
+```
+
+## Partitioning the training set into two
+### Partitioning Training data set into two data sets; 60% for Training and 40% for Testing
+```{r casche=T}
+inTrain<-createDataPartition(y=training$classe,p=0.6,list=FALSE)
+Training<-training[inTrain,]
+Testing<-training[-inTrain,]
+dim(Training)
+dim(Testing)
+```
+##Cleaning the Data
+###Remove NearZeroVariance variables
+```{r casche=T}
+nzv<-nearZeroVar(Training,saveMetrics=TRUE)
+Training<-Training[,nzv$nzv==FALSE]
+nzv<-nearZeroVar(Testing,saveMetrics=TRUE)
+Testing<-Testing[,nzv$nzv==FALSE]
+```
+### Remove the first column of the Training data set
+``{r casche=T}
+Training<-Training[c(-1)]
+```
+### Clean the variables with more than 60% NA
+```{r casche=T}
+trainingV3<-Training
+for(i in 1:length(Training)){
+if(sum(is.na(Training[,i]))/nrow(Training)>=.7){
+for(j in 1:length(trainingV3)){
+if(length(grep(names(Training[i]),names(trainingV3)[j]))==1){
+trainingV3<-trainingV3[,-j]
+}
+}
+}
+}
+```
+### set back to the original variable name
+```{r casche=T}
+Training<-trainingV3
+rm(trainingV3)
+```
+### Transform the Testing and Testing data sets
+```{r casche=T} 
+clean1<-colnames(Training)
+clean2<-colnames(Training[,-58]) #remove the classe column
+Testing<-Testing[clean1] #allow only variables in Testing that are also in Training
+testing<-testing[clean2] #allow variables in testing that are also in Testing
+dim(Testing)
+dim(testing)
+```
+### Coerce the data into the same type
+```{r casche=T}
+for(i in 1:length(testing)){
+for(j in 1:length(Training)){
+if(length(grep(names(Training[i]),names(testing)[j]))==1){
+class(testing[j])<-class(Training[i])
+}
+}
+}
+```
+### To get the same class between testing and Training
+```{r casche=T}
+testing<-rbind(Training[2,-58],testing)
+testing<-testing[-1,]
+```
+## PREDICTION WITH DECISION TREES
+```{r casche=T}
+set.seed(12345)
+modFitA1<-rpart(classe~.,data=Training,method="class")
+fancyRpartPlot(modFitA1)
+predictionsA1<-predict(modFitA1,Testing,type="class")
+cmtree<-confusionMatrix(predictionsA1,Testing$classe)
+cmtree
+plot(cmtree$table,col=cmtree$byClass,main=paste("Decision Tree Confusion Matrix:Accuracy=",
+round(cmtree$overall["Accuracy"],4)))
+```
+## PREDICTION WITH RANDOM FORESTS
+```{r casche=T}
+set.seed(123435)
+modFitB1<-randomForest(classe~.,data=Training)
+predictionB1<-predict(modFitB1,Testing,type="class")
+cmrf<-confusionMatrix(predictionB1,Testing$classe)
+cmrf
+plot(modFitB1)
+plot(cmrf$table,col=cmtree$byClass,main=paste("Random Forest Confusion Matrix Accuracy=",
+round(cmrf$overall["Accuracy"],4)))
+```
+## PREDICTION WITH GENERALISED BOOSTED REGRESSION
+```{r casche=T}
+set.seed(12345)
+fitControl<-trainControl(method="repeatedcv",number=5,repeats=1)
+gbmFit1<-train(classe~.,data=Training,method="gbm",trControl=fitControl,verbose=FALSE)
+gbmFitMod1<-gbmFit1$finalModel
+gbmPredTest<-predict(gbmFit1,newdata=myTesting)
+gbmAccuracyTest<-confusionMatrix(gbmPredTest,Testing$classe)
+gbmAccuracyTest
+plot(gbmFit1,ylim=c(0.9,1))
+```
+## PREDICTING RESULTS ON THE TEST DATA
+###Random Forests gave an accuracy in the Testing data set of 99.9% which is
+### more accurate than the Decision trees or GBM. The expected out of sample 
+### test error is 0.10%
+```{r casche=T}
+predictB2<-predict(modFitB1,testing,type="class")
+predictB2
+```
+### Write the results to a text file for submission
+pml_write_files=function(x){
+n=length(x)
+for(i in 1:n){
+filename=paste0("problem_id_",i,".txt")
+write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+}
+}
+pml_write_files(predictB2)
+
